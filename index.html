@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Lifetime Value Predictor</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .tab-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="number"], input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="number"]:focus, input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .predict-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .predict-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .predict-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .reset-btn {
+            background: #f0f0f0;
+            color: #333;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .reset-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .error {
+            background: #fee;
+            border-left: 4px solid #f44;
+            color: #c33;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .spinner + p {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .result-section {
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .result-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .result-value {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .segment-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .segment-low {
+            background: rgba(255, 107, 107, 0.2);
+            color: #FF6B6B;
+        }
+
+        .segment-medium {
+            background: rgba(255, 165, 0, 0.2);
+            color: #FFA500;
+        }
+
+        .segment-high {
+            background: rgba(0, 217, 163, 0.2);
+            color: #00D9A3;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .detail-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .detail-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .detail-value {
+            font-size: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 30px 0;
+        }
+
+        .batch-results {
+            margin-top: 30px;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .results-table th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .results-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .results-table tr:hover {
+            background: #fafafa;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+
+        .file-upload-area {
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .file-upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f0f0;
+        }
+
+        .file-upload-area.dragging {
+            border-color: #00D9A3;
+            background: #e8f6f3;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0;
+            }
+
+            .tab-content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .result-value {
+                font-size: 36px;
+            }
+
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 CLV Predictor Pro</h1>
+            <p>Advanced Customer Lifetime Value Prediction with Segmentation & Analytics</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('single')">Single Prediction</button>
+            <button class="tab-btn" onclick="switchTab('batch-api')">Batch Predictions</button>
+            <button class="tab-btn" onclick="switchTab('batch-upload')">Upload File</button>
+        </div>
+
+        <!-- Single Prediction Tab -->
+        <div id="single" class="tab-content active">
+            <div class="error" id="errorMsg"></div>
+
+            <form id="predictionForm">
+                <div class="form-group">
+                    <label for="recency">Recency (days)</label>
+                    <input 
+                        type="number" 
+                        id="recency" 
+                        placeholder="e.g., 30"
+                        min="0"
+                        max="1000"
+                        required
+                    >
+                    <p class="help-text">Days since the customer's last purchase</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="frequency">Frequency (purchases)</label>
+                    <input 
+                        type="number" 
+                        id="frequency" 
+                        placeholder="e.g., 5"
+                        min="1"
+                        max="500"
+                        required
+                    >
+                    <p class="help-text">Total number of purchases made</p>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="predict-btn" id="predictBtn">
+                        <span id="btnText">Predict CLV</span>
+                    </button>
+                    <button type="button" class="reset-btn" onclick="resetForm()">Clear</button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Analyzing customer data...</p>
+            </div>
+
+            <div class="result-section" id="resultSection">
+                <div class="result-box">
+                    <div class="result-label">Predicted Customer Lifetime Value</div>
+                    <div>
+                        <span style="font-size: 24px; opacity: 0.8;">$</span><span class="result-value" id="clvValue">0</span>
+                    </div>
+                    <div class="segment-badge" id="segmentBadge"></div>
+                </div>
+
+                <div class="details-grid">
+                    <div class="detail-card">
+                        <div class="detail-label">Recency</div>
+                        <div class="detail-value" id="detailRecency">0</div>
+                        <div class="detail-label" style="margin-top: 8px;">days</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Frequency</div>
+                        <div class="detail-value" id="detailFrequency">0</div>
+                        <div class="detail-label" style="margin-top: 8px;">purchases</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Batch API Tab -->
+        <div id="batch-api" class="tab-content">
+            <div class="error" id="batchApiError"></div>
+
+            <div class="form-group">
+                <label>Add Customer Data</label>
+                <div id="customersList" style="margin-bottom: 20px;"></div>
+                <button type="button" class="predict-btn" onclick="addCustomerRow()" style="width: 100%;">+ Add Customer</button>
+            </div>
+
+            <div class="button-group">
+                <button class="predict-btn" onclick="batchPredict()">Predict All</button>
+                <button class="reset-btn" onclick="clearCustomers()">Clear All</button>
+            </div>
+
+            <div class="loading" id="batchLoading">
+                <div class="spinner"></div>
+                <p>Processing batch predictions...</p>
+            </div>
+
+            <div class="batch-results" id="batchResults" style="display: none;">
+                <div class="chart-container">
+                    <canvas id="batchChart"></canvas>
+                </div>
+
+                <div class="summary-stats" id="batchSummary"></div>
+
+                <table class="results-table" id="resultsTable">
+                    <thead>
+                        <tr>
+                            <th>Customer #</th>
+                            <th>Recency</th>
+                            <th>Frequency</th>
+                            <th>CLV Prediction</th>
+                            <th>Segment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- File Upload Tab -->
+        <div id="batch-upload" class="tab-content">
+            <div class="error" id="uploadError"></div>
+
+            <div class="form-group">
+                <label>Upload CSV or Excel File</label>
+                <div class="file-upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📁</div>
+                    <p style="font-size: 16px; color: #333; margin-bottom: 5px;">Drag and drop your file here</p>
+                    <p style="font-size: 12px; color: #999;">or click to select a file</p>
+                    <p style="font-size: 11px; color: #999; margin-top: 10px;">Supported formats: CSV, XLSX, XLS</p>
+                    <p style="font-size: 11px; color: #999;">Required columns: Recency, Frequency</p>
+                </div>
+                <input type="file" id="fileInput" style="display: none;" accept=".csv,.xlsx,.xls" onchange="handleFileSelect(event)">
+            </div>
+
+            <div class="loading" id="uploadLoading">
+                <div class="spinner"></div>
+                <p>Processing file...</p>
+            </div>
+
+            <div class="batch-results" id="uploadResults" style="display: none;">
+                <div class="chart-container">
+                    <canvas id="uploadChart"></canvas>
+                </div>
+
+                <div class="summary-stats" id="uploadSummary"></div>
+
+                <table class="results-table" id="uploadTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Recency</th>
+                            <th>Frequency</th>
+                            <th>CLV Prediction</th>
+                            <th>Segment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="uploadBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let batchChart = null;
+        let uploadChart = null;
+        let customersData = [];
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        // ------ SINGLE PREDICTION ------
+        const form = document.getElementById('predictionForm');
+        const resultSection = document.getElementById('resultSection');
+        const loading = document.getElementById('loading');
+        const errorMsg = document.getElementById('errorMsg');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const recency = parseFloat(document.getElementById('recency').value);
+            const frequency = parseFloat(document.getElementById('frequency').value);
+
+            if (recency < 0 || frequency < 0) {
+                showError('Please enter valid positive numbers');
+                return;
+            }
+
+            if (frequency === 0) {
+                showError('Frequency must be at least 1');
+                return;
+            }
+
+            await makePrediction(recency, frequency);
+        });
+
+        async function makePrediction(recency, frequency) {
+            loading.style.display = 'block';
+            resultSection.classList.remove('show');
+            errorMsg.classList.remove('show');
+
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recency, frequency })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error || 'Prediction failed');
+
+                displayResult(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResult(data) {
+            const segment = data.segment;
+            const segmentClass = segment.includes('Low') ? 'segment-low' : 
+                                 segment.includes('Medium') ? 'segment-medium' : 'segment-high';
+
+            document.getElementById('clvValue').textContent = data.clv_prediction.toFixed(2);
+            document.getElementById('detailRecency').textContent = data.input.recency.toFixed(0);
+            document.getElementById('detailFrequency').textContent = data.input.frequency.toFixed(0);
+
+            const badge = document.getElementById('segmentBadge');
+            badge.textContent = segment;
+            badge.className = 'segment-badge ' + segmentClass;
+
+            resultSection.classList.add('show');
+        }
+
+        function showError(message) {
+            errorMsg.textContent = '❌ ' + message;
+            errorMsg.classList.add('show');
+        }
+
+        function resetForm() {
+            form.reset();
+            resultSection.classList.remove('show');
+            errorMsg.classList.remove('show');
+        }
+
+        // ------ BATCH API ------
+        function addCustomerRow() {
+            const id = Date.now();
+            customersData.push({ id, recency: '', frequency: '' });
+            renderCustomersList();
+        }
+
+        function renderCustomersList() {
+            const list = document.getElementById('customersList');
+            list.innerHTML = customersData.map(customer => `
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: end;">
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 4px;">Recency</label>
+                        <input type="number" min="0" value="${customer.recency}" 
+                            onchange="updateCustomer(${customer.id}, 'recency', this.value)" 
+                            placeholder="Days" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="font-size: 12px; display: block; margin-bottom: 4px;">Frequency</label>
+                        <input type="number" min="1" value="${customer.frequency}" 
+                            onchange="updateCustomer(${customer.id}, 'frequency', this.value)" 
+                            placeholder="Purchases" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    </div>
+                    <button type="button" onclick="removeCustomer(${customer.id})" 
+                        style="padding: 8px 12px; background: #fee; color: #c33; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function updateCustomer(id, field, value) {
+            const customer = customersData.find(c => c.id === id);
+            if (customer) customer[field] = value;
+        }
+
+        function removeCustomer(id) {
+            customersData = customersData.filter(c => c.id !== id);
+            renderCustomersList();
+        }
+
+        function clearCustomers() {
+            customersData = [];
+            renderCustomersList();
+            document.getElementById('batchResults').style.display = 'none';
+        }
+
+        async function batchPredict() {
+            if (customersData.length === 0) {
+                document.getElementById('batchApiError').textContent = '❌ Please add at least one customer';
+                document.getElementById('batchApiError').classList.add('show');
+                return;
+            }
+
+            document.getElementById('batchLoading').style.display = 'block';
+            document.getElementById('batchResults').style.display = 'none';
+
+            try {
+                const predictions = customersData.map(c => ({
+                    recency: parseFloat(c.recency),
+                    frequency: parseFloat(c.frequency)
+                }));
+
+                const response = await fetch('http://localhost:5000/batch-predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ predictions })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+
+                displayBatchResults(data.results);
+            } catch (error) {
+                document.getElementById('batchApiError').textContent = '❌ ' + error.message;
+                document.getElementById('batchApiError').classList.add('show');
+            } finally {
+                document.getElementById('batchLoading').style.display = 'none';
+            }
+        }
+
+        function displayBatchResults(results) {
+            const tbody = document.getElementById('resultsBody');
+            tbody.innerHTML = results.map((r, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${r.input.recency}</td>
+                    <td>${r.input.frequency}</td>
+                    <td>$${r.clv_prediction.toFixed(2)}</td>
+                    <td><span class="segment-badge ${getSegmentClass(r.segment)}">${r.segment}</span></td>
+                </tr>
+            `).join('');
+
+            const segments = {};
+            results.forEach(r => {
+                segments[r.segment] = (segments[r.segment] || 0) + 1;
+            });
+
+            document.getElementById('batchSummary').innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${results.length}</div>
+                    <div class="stat-label">Total Customers</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">$${(results.reduce((sum, r) => sum + r.clv_prediction, 0) / results.length).toFixed(2)}</div>
+                    <div class="stat-label">Avg CLV</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">${Math.max(...results.map(r => r.clv_prediction)).toFixed(0)}</div>
+                    <div class="stat-label">Max CLV</div>
+                </div>
+            `;
+
+            if (batchChart) batchChart.destroy();
+            batchChart = new Chart(document.getElementById('batchChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(segments),
+                    datasets: [{
+                        data: Object.values(segments),
+                        backgroundColor: ['#FF6B6B', '#FFA500', '#00D9A3']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            document.getElementById('batchResults').style.display = 'block';
+        }
+
+        // ------ FILE UPLOAD ------
+        const uploadArea = document.getElementById('uploadArea');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFileSelect(event) {
+            handleFile(event.target.files[0]);
+        }
+
+        async function handleFile(file) {
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            document.getElementById('uploadLoading').style.display = 'block';
+            document.getElementById('uploadResults').style.display = 'none';
+
+            try {
+                const response = await fetch('http://localhost:5000/batch-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+
+                displayUploadResults(data.results, data.summary);
+            } catch (error) {
+                document.getElementById('uploadError').textContent = '❌ ' + error.message;
+                document.getElementById('uploadError').classList.add('show');
+            } finally {
+                document.getElementById('uploadLoading').style.display = 'none';
+            }
+        }
+
+        function displayUploadResults(results, summary) {
+            const tbody = document.getElementById('uploadBody');
+            tbody.innerHTML = results.slice(0, 100).map((r, i) => `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td>${r.Recency}</td>
+                    <td>${r.Frequency}</td>
+                    <td>$${r.CLV_Prediction.toFixed(2)}</td>
+                    <td><span class="segment-badge ${getSegmentClass(r.Segment)}">${r.Segment}</span></td>
+                </tr>
+            `).join('');
+
+            document.getElementById('uploadSummary').innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-value">${summary.total_customers}</div>
+                    <div class="stat-label">Total Customers</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">$${summary.average_clv.toFixed(2)}</div>
+                    <div class="stat-label">Avg CLV</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">$${summary.max_clv.toFixed(2)}</div>
+                    <div class="stat-label">Max CLV</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value">$${summary.min_clv.toFixed(2)}</div>
+                    <div class="stat-label">Min CLV</div>
+                </div>
+            `;
+
+            if (uploadChart) uploadChart.destroy();
+            uploadChart = new Chart(document.getElementById('uploadChart'), {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(summary.segment_distribution),
+                    datasets: [{
+                        label: 'Customer Count',
+                        data: Object.values(summary.segment_distribution),
+                        backgroundColor: ['#FF6B6B', '#FFA500', '#00D9A3']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            document.getElementById('uploadResults').style.display = 'block';
+        }
+
+        function getSegmentClass(segment) {
+            return segment.includes('Low') ? 'segment-low' : 
+                   segment.includes('Medium') ? 'segment-medium' : 'segment-high';
+        }
+
+        // Add initial customer row
+        addCustomerRow();
+    </script>
+</body>
+</html>
