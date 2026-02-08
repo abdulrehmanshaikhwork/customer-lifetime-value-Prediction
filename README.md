@@ -318,7 +318,7 @@ Deploy in minutes to:
 - 📖 **Docs**: See guides above
 - 🐛 **Issues**: [GitHub Issues](https://github.com/abdulrehmanshaikhwork/customer-lifetime-value-Prediction/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/abdulrehmanshaikhwork/customer-lifetime-value-Prediction/discussions)
-- 📧 **Email**: abdul@example.com
+- 📧 **Email**: abdulrehmanshaikhwork@gmail.com
 
 ---
 
